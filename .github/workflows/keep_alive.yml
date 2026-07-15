@@ -1,93 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+name: Keep Supabase Alive
 
-// Aapke credentials
-const SUPABASE_URL = 'https://hidwvmgjbthiepmtdvvi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpZHd2bWdqYnRoaWVwbXRkdnZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3Nzc5MzcsImV4cCI6MjA3OTM1MzkzN30.ru-sjp9GLsBkndyJbqQIrTU1BcNN2APVaHeHbDmXIMo';
+on:
+  schedule:
+    - cron: '0 0 * * 0,4' # Har Sunday aur Thursday ko auto run hoga
+  workflow_dispatch:      # Isse hume manual "Run" button dikhega
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Table Name Generator (e.g., 'students_class_3')
-export const getTableName = (classLevel: string | number) => `students_class_${classLevel}`;
-
-// Column Name Generator (e.g., 'physics_test_5')
-export const getColumnName = (subject: string, testNo: number) => {
-  // Test number validation (1 to 20 as per your schema)
-  if (testNo < 1 || testNo > 20) {
-    throw new Error('Test number must be between 1 and 20');
-  }
-  
-  // Format subject: lowercase, replace spaces with underscores
-  const formattedSubject = subject.toLowerCase().trim().replace(/\s+/g, '_');
-  return `${formattedSubject}_test_${testNo}`;
-};
-
-
-// ==========================================
-// DATA OPERATIONS (CRUD)
-// ==========================================
-
-/**
- * 1. Naya Student Add Karein (Name aur Roll No ke sath)
- */
-export const addStudent = async (classLevel: string | number, name: string, rollNo: string) => {
-  const tableName = getTableName(classLevel);
-  
-  const { data, error } = await supabase
-    .from(tableName)
-    .insert([{ name, roll_no: rollNo }]) // UUID automatically generate hoga aapke schema ke hisab se
-    .select();
-
-  if (error) {
-    console.error(`Error adding student in ${tableName}:`, error);
-    throw error;
-  }
-  return data;
-};
-
-
-/**
- * 2. Kisi maujooda student ke specific test ke marks update karein
- * 
- * Example Use: 
- * updateStudentMarks('3', '123e4567-e89b-12d3-a456-426614174000', 'Math', 5, '85')
- */
-export const updateStudentMarks = async (
-  classLevel: string | number, 
-  studentId: string, 
-  subject: string, 
-  testNo: number, 
-  marks: string // String kyunki aapke schema mein type 'text' hai
-) => {
-  const tableName = getTableName(classLevel);
-  const columnName = getColumnName(subject, testNo);
-
-  const { data, error } = await supabase
-    .from(tableName)
-    .update({ [columnName]: marks })
-    .eq('id', studentId) // Update only for this specific student's UUID
-    .select();
-
-  if (error) {
-    console.error(`Error updating ${columnName} for student ${studentId}:`, error);
-    throw error;
-  }
-  return data;
-};
-
-
-/**
- * 3. Ek poori class ka data le kar aana
- */
-export const fetchClassData = async (classLevel: string | number) => {
-  const tableName = getTableName(classLevel);
-
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*');
-
-  if (error) {
-    console.error(`Error fetching data for ${tableName}:`, error);
-    throw error;
-  }
-  return data;
-};
+jobs:
+  ping_db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          curl -i -X GET "https://hidwvmgjbthiepmtdvvi.supabase.co/rest/v1/students_class_3?select=id&limit=1" \
+          -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpZHd2bWdqYnRoaWVwbXRkdnZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3Nzc5MzcsImV4cCI6MjA3OTM1MzkzN30.ru-sjp9GLsBkndyJbqQIrTU1BcNN2APVaHeHbDmXIMo" \
+          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpZHd2bWdqYnRoaWVwbXRkdnZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3Nzc5MzcsImV4cCI6MjA3OTM1MzkzN30.ru-sjp9GLsBkndyJbqQIrTU1BcNN2APVaHeHbDmXIMo"
